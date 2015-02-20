@@ -47,12 +47,13 @@ public class Mandelbrot {
 
 	
 	public static void computeParallel(PixelPainter painter, Plane plane, CancelSupport cancel) {
-        double threadCount = Runtime.getRuntime().availableProcessors() * 2;
-        double l = IMAGE_LENGTH / threadCount;
+        int threadCount = Runtime.getRuntime().availableProcessors() * 2;
+        threadCount = 64;
+        int l = IMAGE_LENGTH / threadCount;
         List<Thread> threadList = new LinkedList<>();
         for (int x = 0; x < threadCount && !cancel.isCancelled(); x++) { // x-axis
-            final int startStep = (int) (l*x);
-            final int endStep = (int) (l*(x+1));
+            final int startStep = (l*x);
+            final int endStep = (l*(x+1));
             Thread t = new Thread(new Runnable() {
                 @Override
                 public void run() {
