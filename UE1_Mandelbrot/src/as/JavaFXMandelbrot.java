@@ -161,19 +161,39 @@ public class JavaFXMandelbrot extends Application {
 
 		CancelSupport cancelSupport = new CancelSupport();
 		cancelled.addListener((o, oldVal, newVal) -> cancelSupport.cancel());
-		
-		{ // <<<<<<<<<<<<<<<<<<<< This block of code should run in a separate Thread >>>>>>>>>>>>>>>>>>>>
-			double start = System.currentTimeMillis();
-			// Replace the following line with Mandelbrot.computeParallel(...)
-			Mandelbrot.computeSequential(painter, plane, cancelSupport);
-			double end = System.currentTimeMillis();
-			Platform.runLater(() -> millis.set((end - start) + "ms"));
-		} // <<<<<<<<<<<<<<<<<<<< This block of code should run in a separate Thread >>>>>>>>>>>>>>>>>>>>
-		
+
+        Thread t = new Thread(new InnerDraw(millis, painter,  cancelSupport, plane));
+        t.start();
+
 		return image;
 	}
 
 	public static void main(String[] args) {
 		launch(args);
 	}
+
+    class InnerDraw implements Runnable {
+
+        private WritableStringValue millis;
+        private PixelPainter painter;
+        private CancelSupport cancelSupport;
+        private Plane plane;
+
+        public InnerDraw(WritableStringValue millis, PixelPainter painter, CancelSupport cancelSupport, Plane plane) {
+            this.millis = millis;
+            this.painter = painter;
+            this.cancelSupport = cancelSupport;
+            this.plane = plane;
+        }
+
+        @Override
+        public void run() {
+            double start = System.currentTimeMillis();
+            // Replace the following line with Mandelbrot.computeParallel(...)
+           // Mandelbrot.computeSequential(painter, plane, cancelSupport);
+            Mandelbrot.computeParallel(painter, plane, cancelSupport);
+            double end = System.currentTimeMillis();
+            Platform.runLater(() -> millis.set((end - start) + "ms"));
+        }
+    }
 };

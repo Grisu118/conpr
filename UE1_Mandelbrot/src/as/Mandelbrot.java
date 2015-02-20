@@ -2,6 +2,9 @@ package as;
 
 import javafx.scene.paint.Color;
 
+import java.util.LinkedList;
+import java.util.List;
+
 /**
  * Computes the Mandelbrot set.
  * http://en.wikipedia.org/wiki/Mandelbrot_set
@@ -44,8 +47,40 @@ public class Mandelbrot {
 
 	
 	public static void computeParallel(PixelPainter painter, Plane plane, CancelSupport cancel) {
-		// TODO Implement a parallel version of the mandelbrot set computation.
-		throw new RuntimeException("To be implemented!");
+        double threadCount = Runtime.getRuntime().availableProcessors() * 2;
+        double l = IMAGE_LENGTH / threadCount;
+        List<Thread> threadList = new LinkedList<>();
+        for (int x = 0; x < threadCount && !cancel.isCancelled(); x++) { // x-axis
+            final int startStep = (int) (l*x);
+            final int endStep = (int) (l*(x+1));
+            Thread t = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    double half = plane.length / 2;
+                    double reMin = plane.center.r - half;
+                    double imMax = plane.center.i + half;
+                    double step = plane.length / IMAGE_LENGTH;
+                    for (int x = startStep; x < endStep && !cancel.isCancelled(); x++) {
+                        double re = reMin + x * step; // map pixel to complex plane
+                        for (int y = 0; y < IMAGE_LENGTH; y++) { // y-axis
+                            double im = imMax - y * step; // map pixel to complex plane
+
+                            int iterations = mandel(re, im);
+                            painter.paint(x, y, getColor(iterations));
+                        }
+                    }
+                }
+            });
+            threadList.add(t);
+            t.start();
+        }
+        for (Thread t : threadList) {
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
 	}
 
 	/**
@@ -53,9 +88,9 @@ public class Mandelbrot {
 	 * 
 	 * Checks whether c = re + i*im is a member of the Mandelbrot set.
 	 * 
-	 * @param re
+	 * @param cre
 	 *            real part
-	 * @param im
+	 * @param cim
 	 *            imaginary part
 	 * @return the number of iterations
 	 */
