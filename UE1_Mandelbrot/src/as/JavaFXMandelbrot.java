@@ -44,8 +44,9 @@ public class JavaFXMandelbrot extends Application {
 	private final StringProperty timeProp = new SimpleStringProperty();
 	private final DoubleProperty progressProp = new SimpleDoubleProperty();
 	private final BooleanProperty cancelProp = new SimpleBooleanProperty();
+    private TextField threads;
 
-	private <A, B> Property<B> unimap(Property<A> aProp, Function<A, B> aToB) {
+    private <A, B> Property<B> unimap(Property<A> aProp, Function<A, B> aToB) {
 		Property<B> bProp = new SimpleObjectProperty<B>(aToB.apply(aProp.getValue()));
 		aProp.addListener((o, oldVal, newVal) -> {
 			bProp.setValue(aToB.apply(newVal));
@@ -112,26 +113,32 @@ public class JavaFXMandelbrot extends Application {
 		zoom.setEditable(false);
 		grid.add(zoom, 1, 3);
 
-		grid.add(new Label("Progress:"), 0, 4);
+        grid.add(new Label("Threads:"), 0, 4);
+        threads = new TextField();
+        threads.setText("64");
+        threads.setEditable(true);
+        grid.add(threads, 1, 4);
+
+		grid.add(new Label("Progress:"), 0, 5);
 		ProgressBar pb = new ProgressBar();
 		pb.setMaxWidth(Double.MAX_VALUE);
 		pb.progressProperty().bind(progressProp);
-		grid.add(pb, 1, 4);
+		grid.add(pb, 1, 5);
 
-		grid.add(new Label("Time:"), 0, 5);
+		grid.add(new Label("Time:"), 0, 6);
 		TextField time = new TextField();
 		time.textProperty().bind(timeProp);
 		time.setEditable(false);
-		grid.add(time, 1, 5);
+		grid.add(time, 1, 6);
 
 		Button stopBtn = new Button("Stop");
 		cancelProp.bind(stopBtn.pressedProperty());
 		stopBtn.disableProperty().bind(progressProp.lessThan(1.0).not());
-		grid.add(stopBtn, 0, 6);
+		grid.add(stopBtn, 0, 7);
 
 		Button resetBtn = new Button("Reset");
 		resetBtn.setOnAction(e -> plane.setValue(INITIAL_PLANE));
-		grid.add(resetBtn, 1, 6);
+		grid.add(resetBtn, 1, 7);
 		return grid;
 	}
 
@@ -162,7 +169,7 @@ public class JavaFXMandelbrot extends Application {
 		CancelSupport cancelSupport = new CancelSupport();
 		cancelled.addListener((o, oldVal, newVal) -> cancelSupport.cancel());
 
-        Thread t = new Thread(new InnerDraw(millis, painter,  cancelSupport, plane));
+        Thread t = new Thread(new InnerDraw(millis, painter,  cancelSupport, plane, Integer.parseInt(threads.getText())));
         t.start();
 
 		return image;
@@ -178,12 +185,14 @@ public class JavaFXMandelbrot extends Application {
         private PixelPainter painter;
         private CancelSupport cancelSupport;
         private Plane plane;
+        private int threads;
 
-        public InnerDraw(WritableStringValue millis, PixelPainter painter, CancelSupport cancelSupport, Plane plane) {
+        public InnerDraw(WritableStringValue millis, PixelPainter painter, CancelSupport cancelSupport, Plane plane, int threads) {
             this.millis = millis;
             this.painter = painter;
             this.cancelSupport = cancelSupport;
             this.plane = plane;
+            this.threads = threads;
         }
 
         @Override
@@ -191,7 +200,7 @@ public class JavaFXMandelbrot extends Application {
             double start = System.currentTimeMillis();
             // Replace the following line with Mandelbrot.computeParallel(...)
            // Mandelbrot.computeSequential(painter, plane, cancelSupport);
-            Mandelbrot.computeParallel(painter, plane, cancelSupport);
+            Mandelbrot.computeParallel(painter, plane, cancelSupport, threads);
             double end = System.currentTimeMillis();
             Platform.runLater(() -> millis.set((end - start) + "ms"));
         }
