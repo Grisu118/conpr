@@ -10,6 +10,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URLDecoder;
 import java.util.List;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -54,11 +56,37 @@ public class ConCrawler {
     /** Starts the request handler loop. */
     public void start() throws IOException {
         System.out.println("ConCrawler started: http://localhost:" + PORT );
+        /*
+        ExecutorService es = Executors.newFixedThreadPool(10, new ThreadFactory() {
+           final AtomicInteger threadID = new AtomicInteger();
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread t = new Thread(r);
+                t.setName("ConCrawler-ConnectionHandler-" + threadID.incrementAndGet());
+                return t;
+            }
+        });
+        */
+        Executor es = new ThreadPoolExecutor(5, 100, 1, TimeUnit.MINUTES, new ArrayBlockingQueue<Runnable>(500), new ThreadFactory() {
+            final AtomicInteger threadID = new AtomicInteger();
+            @Override
+            public Thread newThread(Runnable r) {
+                Thread t = new Thread(r);
+                t.setName("ConCrawler-ConnectionHandler-" + threadID.incrementAndGet());
+                return t;
+            }
+        });
         try (ServerSocket serverSocket = new ServerSocket(PORT)){
             while (true) {
                 final Socket connection = serverSocket.accept();
-                handleRequest(connection);
-            } 
+                es.execute(() -> {
+                    try {
+                        handleRequest(connection);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                });
+            }
         } 
     }
     
