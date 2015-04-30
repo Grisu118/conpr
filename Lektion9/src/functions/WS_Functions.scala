@@ -1,6 +1,6 @@
 package functions
 
-import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
 
 object Einleitung {
   def call(): Unit = println(":-)")
@@ -20,8 +20,19 @@ object Einleitung {
 
 object Aufgabe1 {
 
-  def clock = ???
-  def everySecond(action: (Int) => Unit): Unit = ???
+  def clock(tick: Int) = println("Tick" + tick)
+  def everySecond(action: (Int) => Unit): Unit = {
+    new Thread() {
+      override def run(): Unit = {
+        var i = 0
+        while(i < 50) {
+          action(i)
+          Thread.sleep(1000)
+          i+= 1
+        }
+      }
+    }.start()
+  }
 
   def main(args: Array[String]) {
 
@@ -32,13 +43,26 @@ object Aufgabe1 {
       println("Tock()")
       println("Tick(" + i + ")")
     })
+
+    everySecond(clock)
   }
 }
 
 object Aufgabe2 {
-  def time(block: () => Unit): Unit = ???
+  def time(block: () => Unit): Unit = {
+    val start = System.currentTimeMillis()
+    block()
+    val end = System.currentTimeMillis()
+    println("[" + (end - start) + "]")
+  }
 
-  def time[A](block: () => A): A = ???
+  def time[A](block: () => A): A = {
+    val start = System.currentTimeMillis()
+    val result = block()
+    val end = System.currentTimeMillis()
+    println("[" + (end - start) + "]")
+    result
+  }
 
   def main(args: Array[String]): Unit = {
     time(() => {
@@ -50,17 +74,49 @@ object Aufgabe2 {
       "Done"
     })
 
+    println(a)
+
   }
 }
 
 object Aufgabe3 {
   class NiceAtomicInt(init: Int) {
-    ???
+    val int = new AtomicInteger(init)
+
+    def modify(action: (Int) => Int): Unit = {
+      while (true) {
+        val old = int.get()
+        val n = action(old)
+        if (int.compareAndSet(old, n)) {
+          return
+        }
+      }
+    }
+  }
+
+  class NiceAtomic[A](init: A) {
+    val o = new AtomicReference[A](init)
+
+    def modify(action: (A) => A): Unit = {
+      while (true) {
+        val old = o.get()
+        val n = action(old)
+        if (o.compareAndSet(old, n))
+          return
+      }
+    }
+
+    override def toString: String =
+      o.get().toString
   }
 
   def main(args: Array[String]): Unit = {
     val balance = new NiceAtomicInt(0)
-    //balance.modify(b => b + 10)
+    balance.modify(b => b + 10)
+
+    val list = new NiceAtomic(List(1,2,3))
+    list.modify(l => 0 :: l)
+    println(list)
   }
 }
 
