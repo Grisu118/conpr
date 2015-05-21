@@ -13,15 +13,16 @@ object SyncEventoClient {
     val students = classMembers()
     
     students.foreach(student => println(s"[${System.currentTimeMillis() - startTime} ms] ${student.email}"))
-    
+
     // a)
-    val gradedStudents = ???
-    
+    val gradedStudents = students.map(s => GradedStudent(s, estimateGrade(s)))
+
     // b)
-    val talents = ???
-    
+    val talents = gradedStudents.filter(s => s.grade >= 5)
+
     // c)
-    ???
+    printTopTen(talents)
+
   }
   
   /* Gibt die Top 10 Studierenden aus */
