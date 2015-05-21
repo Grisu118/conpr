@@ -4,6 +4,7 @@ import AsyncEvento._
 import ws.common.Student
 import rx.lang.scala.Observable
 import ws.common.GradedStudent
+import scala.concurrent.Await
 import scala.io.StdIn
 
 object AsyncEventoClient {
@@ -16,13 +17,13 @@ object AsyncEventoClient {
     students.subscribe(student => println(s"[${System.currentTimeMillis() - startTime} ms] ${student.email}"))
   
     // a)
-    val gradedStudents = ???
+    val gradedStudents = students.map(s => GradedStudent(s, estimateGrade(s)))
     
     // b)
-    val talents = ???
+    val talents = gradedStudents.filter(s => s.grade >= 5)
     
     // c)
-    ???
+    printTopTen(talents)
     StdIn.readLine()
   }
   
