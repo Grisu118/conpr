@@ -15,10 +15,10 @@ import rx.lang.scala.schedulers.IOScheduler
 import scala.io.StdIn
 
 object RxIrcBot {
-  val host = "chat.freenode.org"
+  val host = "irc.quakenet.org"
   val port = 6667
-  val chan = "#conpr_fhnw"
-  val nick = "conpr_fhnw_bot"
+  val chan = "#Grisu118"
+  val nick = "grisuBot"
   val real = "conpr_fhnw_real"
   // set to 'true' to see received and transmitted messages 
   val logMessages = true
@@ -50,19 +50,31 @@ object RxIrcBot {
 
 class RxIrcBot(out: OutputStreamWriter, in: ConnectableObservable[String]) {
   import RxIrcBot._
+  import IRCUser._
 
   def init(): Unit = {
     sendCmd("NICK", nick)
     sendCmd("USER", s"$nick 0 * : $real")
-    sendCmd("JOIN", chan)
 
     // Log all messages
     if (logMessages) in.subscribe(cmd => println("< " + cmd), exc => println(exc))
+
+    in.subscribe(cmd =>
+      if (isWelcomeMessage(cmd)) {
+        sendCmd("AUTH", s"$getUserName $getPassword")
+        sendCmd("MODE", s"$getUserName +x")
+        sendCmd("JOIN", chan)}
+    )
     
     // Play PING -> PONG (keep alive)
-    
+    in.subscribe(cmd => if(isPing(cmd)) {sendPong(cmd)})
 
-    
+    //a:
+    in.subscribe(cmd => if (hasJoined(cmd)) {
+      val builder = new StringBuilder("Hello")
+      getUsersInChannel(cmd).foreach(u => builder.append(s" $u &"))
+      sendMsg(builder.dropRight(2).toString())
+    })
 
     // Handle messages
     
@@ -101,12 +113,24 @@ class RxIrcBot(out: OutputStreamWriter, in: ConnectableObservable[String]) {
 
   /** Send a message to the channel. */
   def sendMsg(msg: String): Unit =
-    sendCmd("PRIVMSG", s"$chan : $msg")
+    sendCmd("PRIVMSG", s"$chan :$msg")
 
   /** Send an IRC message to the server. */
   def sendCmd(action: String, args: String): Unit = {
     if (logMessages) println(s"> $action $args")
     out.write(s"$action $args\r\n")
     out.flush()
+  }
+
+  def isWelcomeMessage(msg: String): Boolean = {
+    msg.endsWith(s"MODE $getUserName +i")
+  }
+
+  def hasJoined(msg: String): Boolean = {
+    msg.contains("353")
+  }
+
+  def getUsersInChannel(msg: String) = {
+    msg.split(":").last.split(" ").filter(p => p != getUserName)
   }
 }
