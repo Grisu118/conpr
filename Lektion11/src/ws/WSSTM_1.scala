@@ -50,13 +50,22 @@ object _1_UnsafeTest extends App {
  */
 class AtomicAccount {
 
-  private val balance = ???
+  private val balance = Ref(0.0)
 
-  def deposit(amount: Double) = ???
+  def deposit(amount: Double):Unit = {
+    if (amount < 0) throw new IllegalArgumentException()
+    balance.single += amount
+  }
 
-  def withdraw(amount: Double) = ???
+  def withdraw(amount: Double):Unit = {
+    if (amount < 0) throw new IllegalArgumentException()
+    atomic { implicit tx =>
+      if (balance() - amount < 0) throw new IllegalStateException("Overdrawn!")
+      balance -= amount
+    }
+  }
 
-  def getBalance(): Double = ???
+  def getBalance(): Double = balance.single.get
 }
 
 /* Aufgaben: 
@@ -66,9 +75,9 @@ class AtomicAccount {
 object _2_AtomicAccountTest extends App {
   val aa = new AtomicAccount()
 
-  println("Balance before: " + aa.getBalance())
+  println("Balance before: " + aa.getBalance()) //0
   (1 to 1000000).par.foreach(_ => aa.deposit(1))
-  println("Balance after: " + aa.getBalance())
+  println("Balance after: " + aa.getBalance()) //1000000
 }
 
 
