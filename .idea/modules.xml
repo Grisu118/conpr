@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/IRCBot/IRCBot.iml" filepath="$PROJECT_DIR$/IRCBot/IRCBot.iml" />
       <module fileurl="file://$PROJECT_DIR$/Lektion1/Lektion1.iml" filepath="$PROJECT_DIR$/Lektion1/Lektion1.iml" />
       <module fileurl="file://$PROJECT_DIR$/Lektion10/Lektion10.iml" filepath="$PROJECT_DIR$/Lektion10/Lektion10.iml" />
       <module fileurl="file://$PROJECT_DIR$/Lektion2/Lektion2.iml" filepath="$PROJECT_DIR$/Lektion2/Lektion2.iml" />
