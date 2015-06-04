@@ -32,14 +32,26 @@ import akka.actor.Props
  */
 object LenzoPalace {
   // Getränke
-  trait Drink
-  case object Coke extends Drink // 3 CHF
-  case object IceTea extends Drink // 3 CHF
+  trait Drink {
+    def getPrice(): Double
+  }
+  case object Coke extends Drink {
+    override def getPrice(): Double = 3.0
+  } // 3 CHF
+  case object IceTea extends Drink {
+    override def getPrice(): Double = 3.0
+  } // 3 CHF
 
   // Mahlzeiten
-  trait Food
-  case object Kebab extends Food // 8 CHF
-  case object Dürüm extends Food // 9 CHF
+  trait Food {
+    def getPrice(): Double
+  }
+  case object Kebab extends Food {
+    override def getPrice(): Double = 8.0
+  } // 8 CHF
+  case object Dürüm extends Food {
+    override def getPrice(): Double = 9.0
+  } // 9 CHF
 
   // Customer -> Waiter
   case class Order(food: Food, drink: Drink, customer: ActorRef)
@@ -50,17 +62,28 @@ object LenzoPalace {
   // Cook -> Customer
   case class Plate(food: Food)
   // Boss -> Waiter
-  // TODO Message Klasse um Total abzufragen
+  case class Message(boss: ActorRef)
 
   class Waiter(cook: ActorRef) extends Actor {
+    var total = 0.0
     def receive = {
-      case Order(f,d,c) => ???
+      case Order(f,d,c) => {
+        total += f.getPrice()
+        total += d.getPrice()
+        cook ! FoodOrder(f, c)
+        c ! Glass(d)
+      }
+      case Message(b) => b ! total
         
     }
   }
 
   class Cook extends Actor {
-    def receive = ???
+    def receive = {
+      case FoodOrder(f, c) => {
+        c ! Plate(f)
+      }
+    }
   }
 
   def main(args: Array[String]): Unit = {
@@ -76,6 +99,14 @@ object LenzoPalace {
       def receive = {
         case Glass(IceTea) => println("Sluuurp")
         case Plate(Dürüm) => println("Hmmm! Delicious!!")
+      }
+    }))
+    Thread.sleep(100)
+    as.actorOf(Props(new Actor {
+      waiter ! Message(self)
+
+      def receive = {
+        case i: Double => println("Boss: Umsatztotal " + i)
       }
     }))
     
